@@ -1,0 +1,15 @@
+[package]
+name = "fa_rust"
+version = "1.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.70"
+clap = { version = "4.1.11", features = ["derive"] }
+rayon = "1.7.0"
+serde = { version = "1.0.158", features = ["derive"] }
+serde_json = "1.0.94"
+tera = "1.18.1"
+thiserror = "1.0.40"
