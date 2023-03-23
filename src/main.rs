@@ -1,6 +1,6 @@
 mod config;
 
-use crate::config::Config;
+use crate::config::{Config, IconStyle, IconType};
 use anyhow::{Context, Result};
 use clap::Parser;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
@@ -27,7 +27,7 @@ enum FaRustError {
 #[derive(Parser, Debug)]
 #[command(
     name = "FaRust",
-    version = "1.0.0",
+    version = "1.0.1",
     author = "Casey Clayton <claytoncasey01@gmail.com>",
     about = "Generates icon wrapper components for Font Awesome Icons"
 )]
@@ -47,16 +47,38 @@ fn load_template(template_name: &str) -> Result<String, std::io::Error> {
     read_to_string(path)
 }
 
+/// Builds the path to the icon package based on the icon style and type
+fn build_icon_path(icon_style: &IconStyle, icon_type: &IconType) -> String {
+    let style = match icon_style {
+        IconStyle::Solid => "solid",
+        IconStyle::Regular => "regular",
+        IconStyle::Light => "light",
+        IconStyle::Thin => "thin",
+        IconStyle::Duotone => "duotone",
+        IconStyle::Brands => "brands",
+    };
+
+    let icon_type = match icon_type {
+        IconType::Pro => "pro",
+        IconType::Free => "free",
+    };
+
+    format!("@fortawesome/{}-{}-svg-icons", icon_type, style)
+}
+
+/// Generates a component for the given icon
 fn generate_component(
     icon_name: &str,
-    icon_path: &str,
+    icon_type: &IconType,
+    icon_style: &IconStyle,
     component_name: &str,
     output_path: &str,
     tera: &Tera,
 ) -> Result<()> {
+    let icon_path = build_icon_path(icon_style, icon_type);
     let mut context = tera::Context::new();
     context.insert("icon_name", icon_name);
-    context.insert("icon_path", icon_path);
+    context.insert("icon_path", icon_path.as_str());
     context.insert("component_name", component_name);
 
     let rendered = tera
@@ -94,7 +116,8 @@ fn main() -> Result<()> {
         config.icons.par_iter().try_for_each(|icon| {
             generate_component(
                 icon.name.as_str(),
-                icon.path.as_str(),
+                &icon.icon_type,
+                &icon.style,
                 icon.component_name.as_str(),
                 &config.output,
                 &tera,
