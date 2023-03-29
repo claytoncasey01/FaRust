@@ -7,7 +7,7 @@ use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::fs;
 use std::fs::{read_to_string, File};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tera::Tera;
 use thiserror::Error;
 
@@ -72,7 +72,7 @@ fn generate_component(
     icon_type: &IconType,
     icon_style: &IconStyle,
     component_name: &str,
-    output_path: &str,
+    output_path: &PathBuf,
     tera: &Tera,
 ) -> Result<()> {
     let icon_path = build_icon_path(icon_style, icon_type);
@@ -90,12 +90,10 @@ fn generate_component(
 
     // Create the file and write the rendered template to it
     let file_name = format!("{}Icon.tsx", component_name);
-    let file_path = Path::new(output_path).join(&file_name);
+    let file_path = output_path.join(&file_name);
     let mut file = File::create(&file_path).map_err(FaRustError::IOError)?;
     file.write_all(rendered.as_bytes())
         .map_err(FaRustError::IOError)?;
-
-    println!("Generated component: {}", file_name);
 
     Ok(())
 }
@@ -108,6 +106,7 @@ fn main() -> Result<()> {
         let config_file = read_to_string(args.config).context("Failed to read the config file")?;
         let config: Config =
             serde_json::from_str(&config_file).context("Failed to parse the config file")?;
+        let output_path = PathBuf::from(config.output);
 
         let mut tera = Tera::default();
         let template = load_template(ICON_TEMPLATE)?;
@@ -119,10 +118,12 @@ fn main() -> Result<()> {
                 &icon.icon_type,
                 &icon.style,
                 icon.component_name.as_str(),
-                &config.output,
+                &output_path,
                 &tera,
             )
         })?;
+
+        println!("Generated {} components", config.icons.len());
     } else {
         anyhow::bail!("Error: No config file specified, please provide one with the --config flag");
     }
